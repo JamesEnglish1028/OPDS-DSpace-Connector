@@ -1,0 +1,29 @@
+<bean class="org.dspace.content.virtual.VirtualMetadataPopulator">
+    <property name="map">
+        <map>
+            <entry key="isAuthorOfPublication" value-ref="publicationContributor_name"/>
+            <entry key="isIllustratorOfPublication" value-ref="publicationContributor_name"/>
+            <entry key="isEditorOfPublication" value-ref="publicationContributor_name"/>
+            <entry key="isNarratorOfPublication" value-ref="publicationContributor_name"/>
+            <entry key="isPublisherOfPublication" value-ref="publicationPublisher_name"/>
+        </map>
+    </property>
+</bean>
+
+<bean class="org.dspace.content.virtual.Concatenate" id="publicationContributor_name">
+    <property name="fields">
+        <util:list>
+            <value>person.familyName</value>
+            <value>person.givenName</value>
+        </util:list>
+    </property>
+    <property name="separator"><value>, </value></property>
+</bean>
+
+<bean class="org.dspace.content.virtual.Collected" id="publicationPublisher_name">
+    <property name="fields">
+        <util:list>
+            <value>organization.legalName</value>
+        </util:list>
+    </property>
+</bean>
