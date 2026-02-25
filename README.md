@@ -13,6 +13,6 @@ Region: Choose the one closest to your DSpace instance.
 
 Environment Variables: (Crucial for the script to talk to your DSpace)
 
-DSPACE_API: https://your-dspace-domain.edu/server/api
+'DSPACE_API: https://your-dspace-domain.edu/server/api'
 
-BASE_URL: https://your-render-app-name.onrender.com
+'BASE_URL: https://your-render-app-name.onrender.com'
