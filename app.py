@@ -270,7 +270,7 @@ def search_publications(query: str = None):
         })
     return feed
 
-## Test Routes
+## -- Test Routes --
 
 @app.get("/opds/v2/mock-preview", summary="Mock Preview for OPDS Clients")
 def mock_preview():
