@@ -1,6 +1,7 @@
 import os
 from fastapi import FastAPI
 import requests
+from urllib.parse import quote
 
 app = FastAPI()
 
@@ -12,26 +13,98 @@ BASE_URL = os.getenv("BASE_URL", "http://localhost:10000").rstrip('/')
 def health_check():
     return {"status": "online", "connector": "DSpace-to-OPDS2.0"}
 
-@app.get("/opds/v2/catalog", summary="Root Navigation Feed")
-def root_navigation():
-    """Starts the crawl at the top-level DSpace Communities."""
-    url = f"{DSPACE_API}/core/communities/search/top"
-    data = requests.get(url).json()
+@app.get("/opds/v2/search", summary="Search Feed")
+def search_publications(query: str = None):
+    """
+    Proxies a search request to DSpace and returns an OPDS 2.0 Publication Feed.
+    """
+    if not query:
+        # Return an empty feed or a prompt if no query is provided
+        return {"metadata": {"title": "Enter search terms"}, "publications": []}
+
+    # Query DSpace Discovery API
+    # We use /discover/search/objects to find items across the repo
+    search_url = f"{DSPACE_API}/discover/search/objects?query={quote(query)}&dsoType=item&embed=metadata"
+    response = requests.get(search_url).json()
+    
+    # Extract items from the Discovery search results
+    search_results = response.get('_embedded', {}).get('objects', [])
     
     feed = {
         "@context": "http://opds-spec.org/opds.jsonld",
-        "metadata": {"title": "Main Library Catalog", "@type": "http://schema.org/NavigationEventsCard"},
-        "links": [{"rel": "self", "href": f"{BASE_URL}/opds/v2/catalog", "type": "application/opds+json"}],
+        "metadata": {
+            "title": f"Search Results for: {query}",
+            "numberOfItems": response.get('page', {}).get('totalElements', 0)
+        },
+        "publications": []
+    }
+
+    for result in search_results:
+        # Discovery API wraps the item in an 'indexableObject'
+        item = result.get('_embedded', {}).get('indexableObject', {})
+        if not item: continue
+        
+        meta = item.get('metadata', {})
+        # Re-use your publication mapping logic here
+        feed["publications"].append({
+            "metadata": {
+                "title": meta.get('dc.title', [{}])[0].get('value', 'Untitled'),
+                "author": [{"name": a['value']} for a in meta.get('dc.contributor.author', [])]
+            },
+            "links": [{"rel": "self", "href": f"{BASE_URL}/opds/v2/item/{item['uuid']}", "type": "application/opds-publication+json"}]
+        })
+
+    return feed
+
+@app.get("/opds/v2/catalog", summary="Root Navigation Feed")
+def root_navigation(page: int = 0, size: int = 20):
+    """Starts the crawl at the top-level DSpace Communities with Pagination."""
+    
+    # Query DSpace with pagination parameters
+    params = {'page': page, 'size': size}
+    url = f"{DSPACE_API}/core/communities/search/top?{urlencode(params)}"
+    response = requests.get(url).json()
+    
+    # Extract pagination info from DSpace response
+    page_info = response.get('page', {})
+    total_pages = page_info.get('totalPages', 1)
+    current_page = page_info.get('number', 0)
+    
+    # Initialize the OPDS Feed
+    feed = {
+        "@context": "http://opds-spec.org/opds.jsonld",
+        "metadata": {
+            "title": "Main Library Catalog",
+            "@type": "http://schema.org/NavigationEventsCard",
+            "numberOfItems": page_info.get('totalElements', 0),
+            "itemsPerPage": size,
+            "currentPage": current_page + 1  # OPDS is usually 1-indexed for display
+        },
+        "links": [
+            {"rel": "self", "href": f"{BASE_URL}/opds/v2/catalog?page={current_page}&size={size}", "type": "application/opds+json"},
+            {"rel": "search", "href": f"{BASE_URL}/opds/v2/search{{?query}}", "type": "application/opds+json", "templated": True}
+        ],
         "navigation": []
     }
+
+    # Add Pagination Links
+    if current_page > 0:
+        feed["links"].append({"rel": "first", "href": f"{BASE_URL}/opds/v2/catalog?page=0&size={size}", "type": "application/opds+json"})
+        feed["links"].append({"rel": "previous", "href": f"{BASE_URL}/opds/v2/catalog?page={current_page - 1}&size={size}", "type": "application/opds+json"})
     
-    for comm in data.get('_embedded', {}).get('communities', []):
+    if current_page < total_pages - 1:
+        feed["links"].append({"rel": "next", "href": f"{BASE_URL}/opds/v2/catalog?page={current_page + 1}&size={size}", "type": "application/opds+json"})
+        feed["links"].append({"rel": "last", "href": f"{BASE_URL}/opds/v2/catalog?page={total_pages - 1}&size={size}", "type": "application/opds+json"})
+
+    # Process Navigation Items
+    for comm in response.get('_embedded', {}).get('communities', []):
         feed["navigation"].append({
             "href": f"{BASE_URL}/opds/v2/community/{comm['uuid']}",
             "title": comm['name'],
             "type": "application/opds+json",
             "rel": "subsection"
         })
+        
     return feed
 
 @app.get("/opds/v2/community/{uuid}", summary="Sub-Navigation Feed")
