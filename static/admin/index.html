@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OPDS Admin</title>
+    <style>
+      :root {
+        --bg: #f4f6f8;
+        --card: #ffffff;
+        --text: #12202f;
+        --accent: #1f6feb;
+        --muted: #5b6773;
+        --border: #d0d7de;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+        background: linear-gradient(160deg, #e8eef5 0%, #f9fbfd 100%);
+        color: var(--text);
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+      }
+      .card {
+        width: min(680px, 92vw);
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 24px;
+        box-shadow: 0 12px 30px rgba(18, 32, 47, 0.08);
+      }
+      h1 { margin: 0 0 8px; font-size: 1.6rem; }
+      p { color: var(--muted); margin: 0 0 16px; }
+      label { display: block; font-weight: 600; margin: 12px 0 6px; }
+      input {
+        width: 100%;
+        padding: 11px 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 0.95rem;
+      }
+      .row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+      button {
+        border: 0;
+        border-radius: 8px;
+        padding: 10px 14px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .primary { background: var(--accent); color: #fff; }
+      .secondary { background: #edf2f7; color: var(--text); }
+      .status {
+        margin-top: 14px;
+        padding: 10px;
+        border-radius: 8px;
+        background: #f0f4fa;
+        border: 1px solid var(--border);
+        white-space: pre-wrap;
+      }
+      .meta { margin-top: 10px; color: var(--muted); font-size: 0.9rem; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script>
+      const { useState } = React;
+
+      function AdminApp() {
+        const [token, setToken] = useState("");
+        const [dspaceApi, setDspaceApi] = useState("");
+        const [current, setCurrent] = useState("(not loaded)");
+        const [status, setStatus] = useState("Ready.");
+
+        const headers = () => ({
+          "Content-Type": "application/json",
+          "X-Admin-Token": token,
+        });
+
+        async function loadConfig() {
+          setStatus("Loading config...");
+          const res = await fetch("/admin/api/config", { headers: headers() });
+          const body = await res.json();
+          if (!res.ok) {
+            setStatus("Load failed: " + (body.detail || res.status));
+            return;
+          }
+
+          setDspaceApi(body.dspaceApi || "");
+          setCurrent(body.dspaceApi || "");
+          setStatus("Config loaded.");
+        }
+
+        async function saveConfig() {
+          setStatus("Saving config...");
+          const res = await fetch("/admin/api/config", {
+            method: "PUT",
+            headers: headers(),
+            body: JSON.stringify({ dspaceApi }),
+          });
+          const body = await res.json();
+          if (!res.ok) {
+            setStatus("Save failed: " + (body.detail || res.status));
+            return;
+          }
+
+          setCurrent(body.dspaceApi || "");
+          setStatus("Config updated successfully.");
+        }
+
+        async function checkReadiness() {
+          setStatus("Checking readiness...");
+          const res = await fetch("/readyz");
+          const body = await res.json();
+          if (!res.ok) {
+            setStatus("Readiness failed: " + (body.detail || res.status));
+            return;
+          }
+          setStatus("Ready: " + JSON.stringify(body));
+        }
+
+        return React.createElement(
+          "main",
+          { className: "card" },
+          React.createElement("h1", null, "DSpace Connector Admin"),
+          React.createElement(
+            "p",
+            null,
+            "Configure runtime DSpace API URL. Changes are in-memory per service instance."
+          ),
+          React.createElement("label", null, "Admin Token"),
+          React.createElement("input", {
+            type: "password",
+            value: token,
+            onChange: (e) => setToken(e.target.value),
+            placeholder: "X-Admin-Token value",
+          }),
+          React.createElement("label", null, "DSpace API URL"),
+          React.createElement("input", {
+            type: "text",
+            value: dspaceApi,
+            onChange: (e) => setDspaceApi(e.target.value),
+            placeholder: "https://your-dspace-domain.edu/server/api or MOCK",
+          }),
+          React.createElement(
+            "div",
+            { className: "row" },
+            React.createElement("button", { className: "secondary", onClick: loadConfig }, "Load"),
+            React.createElement("button", { className: "primary", onClick: saveConfig }, "Save"),
+            React.createElement("button", { className: "secondary", onClick: checkReadiness }, "Check /readyz")
+          ),
+          React.createElement("div", { className: "meta" }, "Current effective DSpace API: " + current),
+          React.createElement("div", { className: "status" }, status)
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(AdminApp));
+    </script>
+  </body>
+</html>

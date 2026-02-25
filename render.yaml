@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: opds-dspace-connector
+    runtime: docker
+    dockerfilePath: ./dockerfile
+    healthCheckPath: /readyz
+    envVars:
+      - key: DSPACE_API
+        sync: false
+      - key: BASE_URL
+        sync: false
+      - key: DSPACE_TIMEOUT_SECONDS
+        value: "10"
+      - key: DSPACE_RETRY_TOTAL
+        value: "2"
+      - key: READINESS_TIMEOUT_SECONDS
+        value: "2"
+      - key: LOOKUP_CACHE_TTL_SECONDS
+        value: "60"
+      - key: ADMIN_TOKEN
+        sync: false
+      - key: WEB_CONCURRENCY
+        value: "2"
