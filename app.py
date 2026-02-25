@@ -133,32 +133,60 @@ def get_community(uuid: str):
     
     return feed
 
-@app.get("/opds/v2/collection/{uuid}", summary="Publication Feed")
-def get_publication_feed(uuid: str):
-    """The 'Leaf' feed: lists all Publication Entities in a collection."""
-    items_url = f"{DSPACE_API}/core/items/search/findByCollection?uuid={uuid}&embed=metadata"
-    items = requests.get(items_url).json().get('_embedded', {}).get('items', [])
+@app.get("/opds/v2/collection/{uuid}", summary="Publication Feed with Pagination")
+def get_publication_feed(uuid: str, page: int = 0, size: int = 20):
+    """Fetches items in a collection and returns an OPDS 2.0 Publication Feed with pagination."""
+    
+    # Query DSpace with pagination: size and page
+    params = {'uuid': uuid, 'page': page, 'size': size, 'embed': 'metadata'}
+    items_url = f"{DSPACE_API}/core/items/search/findByCollection?{urlencode(params)}"
+    response = requests.get(items_url).json()
+    
+    page_info = response.get('page', {})
+    total_pages = page_info.get('totalPages', 1)
+    current_page = page_info.get('number', 0)
     
     feed = {
         "@context": "http://opds-spec.org/opds.jsonld",
-        "metadata": {"title": "Publications"},
+        "metadata": {
+            "title": f"Collection Catalog - Page {current_page + 1}",
+            "numberOfItems": page_info.get('totalElements', 0),
+            "itemsPerPage": size,
+            "currentPage": current_page + 1
+        },
+        "links": [
+            {"rel": "self", "href": f"{BASE_URL}/opds/v2/collection/{uuid}?page={current_page}&size={size}", "type": "application/opds+json"}
+        ],
         "publications": []
     }
+
+    # Add Navigation/Pagination links to the feed
+    if current_page > 0:
+        feed["links"].append({"rel": "first", "href": f"{BASE_URL}/opds/v2/collection/{uuid}?page=0&size={size}", "type": "application/opds+json"})
+        feed["links"].append({"rel": "previous", "href": f"{BASE_URL}/opds/v2/collection/{uuid}?page={current_page - 1}&size={size}", "type": "application/opds+json"})
     
+    if current_page < total_pages - 1:
+        feed["links"].append({"rel": "next", "href": f"{BASE_URL}/opds/v2/collection/{uuid}?page={current_page + 1}&size={size}", "type": "application/opds+json"})
+        feed["links"].append({"rel": "last", "href": f"{BASE_URL}/opds/v2/collection/{uuid}?page={total_pages - 1}&size={size}", "type": "application/opds+json"})
+
+    # Map Items to Publications
+    items = response.get('_embedded', {}).get('items', [])
     for item in items:
         meta = item.get('metadata', {})
         
-        # Mapping Virtual Metadata defined in DSpace
+        # Acquisition and Image detection logic
+        acquisition_links, cover_images = get_bitstreams(item['uuid'])
+        
         pub = {
             "metadata": {
-                "title": meta.get('dc.title', [{}])[0].get('value'),
+                "@type": "http://schema.org/Book",
+                "title": meta.get('dc.title', [{}])[0].get('value', 'Untitled'),
                 "author": [{"name": a['value']} for a in meta.get('dc.contributor.author', [])],
                 "narrator": [{"name": n['value']} for n in meta.get('isNarratorOfPublication', [])],
-                "publisher": meta.get('isPublisherOfPublication', [{}])[0].get('value', "Unknown")
+                "publisher": {"name": meta.get('isPublisherOfPublication', [{}])[0].get('value', 'Unknown')}
             },
-            "links": [
-                {"rel": "http://opds-spec.org/acquisition/open-access", "href": f"{DSPACE_API}/core/items/{item['uuid']}/bitstreams", "type": "application/epub+zip"}
-            ]
+            "links": acquisition_links,
+            "images": cover_images
         }
         feed["publications"].append(pub)
         
