@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<relationship-types>
+    <entity-types>
+        <entity-type>Publication</entity-type>
+        <entity-type>Person</entity-type>
+        <entity-type>OrgUnit</entity-type>
+        <entity-type>Series</entity-type>
+    </entity-types>
+
+    <relationship-type>
+        <left-type>Publication</left-type><right-type>Person</right-type>
+        <leftward-type>isAuthorOfPublication</leftward-type>
+        <rightward-type>isPublicationOfAuthor</rightward-type>
+    </relationship-type>
+    <relationship-type>
+        <left-type>Publication</left-type><right-type>Person</right-type>
+        <leftward-type>isIllustratorOfPublication</leftward-type>
+        <rightward-type>isPublicationOfIllustrator</rightward-type>
+    </relationship-type>
+    <relationship-type>
+        <left-type>Publication</left-type><right-type>Person</right-type>
+        <leftward-type>isEditorOfPublication</leftward-type>
+        <rightward-type>isPublicationOfEditor</rightward-type>
+    </relationship-type>
+    <relationship-type>
+        <left-type>Publication</left-type><right-type>Person</right-type>
+        <leftward-type>isNarratorOfPublication</leftward-type>
+        <rightward-type>isPublicationOfNarrator</rightward-type>
+    </relationship-type>
+
+    <relationship-type>
+        <left-type>Publication</left-type><right-type>OrgUnit</right-type>
+        <leftward-type>isPublisherOfPublication</leftward-type>
+        <rightward-type>isPublicationOfPublisher</rightward-type>
+    </relationship-type>
+
+    <relationship-type>
+        <left-type>Publication</left-type><right-type>Series</right-type>
+        <leftward-type>isSeriesOfPublication</leftward-type>
+        <rightward-type>isPublicationOfSeries</rightward-type>
+        <copy-leftward>false</copy-leftward>
+        <copy-rightward>false</copy-rightward>
+    </relationship-type>
+</relationship-types>
