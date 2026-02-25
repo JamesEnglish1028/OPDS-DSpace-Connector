@@ -11,7 +11,7 @@ Runtime: Docker
 
 Region: Choose the one closest to your DSpace instance.
 
-###Environment Variables:
+## Environment Variables:
 
 DSPACE_API: https://your-dspace-domain.edu/server/api
 
