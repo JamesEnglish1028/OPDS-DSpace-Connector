@@ -195,3 +195,47 @@ def search_publications(query: str = None):
             "images": images
         })
     return feed
+
+## Test Routes
+
+@app.get("/opds/v2/mock-preview", summary="Mock Preview for OPDS Clients")
+def mock_preview():
+    """Generates a mock feed to test how different entities look in e-readers."""
+    return {
+        "@context": "http://opds-spec.org/opds.jsonld",
+        "metadata": {
+            "title": "Preview: Specialized Entities"
+        },
+        "publications": [
+            {
+                "metadata": {
+                    "@type": "http://schema.org/Audiobook",
+                    "title": "DSpace Chronicles: The Audio Experience",
+                    "author": [{"name": "English, James"}],
+                    "narrator": [{"name": "Narrator Voice"}],
+                    "publisher": {"name": "DSpace Labs"},
+                    "description": "A mock audiobook entity to test narrator metadata."
+                },
+                "links": [
+                    {"rel": "http://opds-spec.org/acquisition", "href": "https://www.learningcontainer.com/wp-content/uploads/2020/02/Sample-OGG-File.ogg", "type": "audio/ogg"}
+                ],
+                "images": [{"href": "https://placehold.co/600x400/000/fff?text=Audiobook+Cover", "type": "image/png"}]
+            },
+            {
+                "metadata": {
+                    "@type": "http://schema.org/PublicationIssue",
+                    "title": "The DSpace Comic #1",
+                    "author": [{"name": "Developer, Alex"}],
+                    "illustrator": [{"name": "Artist, Sam"}],
+                    "belongsTo": {
+                        "series": {"name": "The Great Metadata Saga", "position": 1}
+                    }
+                },
+                "links": [
+                    {"rel": "http://opds-spec.org/acquisition", "href": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf", "type": "application/pdf"}
+                ],
+                "images": [{"href": "https://placehold.co/600x400/000/fff?text=Comic+Cover", "type": "image/png"}]
+            }
+        ]
+    }
+
