@@ -4,6 +4,44 @@ from fastapi import FastAPI
 from urllib.parse import quote, urlencode
 
 app = FastAPI(title="DSpace-OPDS Connector")
+# --- MOC DSPACE API DATA ---
+MOCK_COMMUNITIES = {
+    "_embedded": {
+        "communities": [
+            {"uuid": "comm-1", "name": "Audiobook Library"},
+            {"uuid": "comm-2", "name": "Graphic Novel Collection"}
+        ]
+    },
+    "page": {"totalElements": 2, "totalPages": 1, "number": 0}
+}
+
+MOCK_ITEMS = {
+    "comm-1": [
+        {
+            "uuid": "audio-1",
+            "metadata": {
+                "dc.title": [{"value": "The Metadata Mystery"}],
+                "dc.type": [{"value": "Audiobook"}],
+                "dc.contributor.author": [{"value": "English, James"}],
+                "isNarratorOfPublication": [{"value": "Voice Actor, Sarah"}],
+                "isPublisherOfPublication": [{"value": "OPDS Labs"}]
+            }
+        }
+    ],
+    "comm-2": [
+        {
+            "uuid": "comic-1",
+            "metadata": {
+                "dc.title": [{"value": "The Code Crusader #1"}],
+                "dc.type": [{"value": "Periodical"}],
+                "dc.contributor.author": [{"value": "Developer, Alex"}],
+                "isIllustratorOfPublication": [{"value": "Artist, Sam"}],
+                "isSeriesOfPublication": [{"value": "The Great Metadata Saga"}],
+                "relation.isSeriesOfPublication.number": [{"value": "1"}]
+            }
+        }
+    ]
+}
 
 # --- CONFIGURATION ---
 # Render/Environment variables
@@ -125,12 +163,26 @@ def get_community(uuid: str):
 
 @app.get("/opds/v2/collection/{uuid}", summary="Publication Feed")
 def get_publication_feed(uuid: str, page: int = 0, size: int = 20):
-    """Paginated list of Publication Entities in a collection."""
-    params = {'uuid': uuid, 'page': page, 'size': size, 'embed': 'metadata'}
-    url = f"{DSPACE_API}/core/items/search/findByCollection?{urlencode(params)}"
-    response = requests.get(url).json()
+    """Paginated list of Publication Entities in a collection, supporting MOCK mode."""
     
-    page_info = response.get('page', {})
+    # 1. DATA ACQUISITION LAYER
+    if os.getenv("DSPACE_API") == "MOCK":
+        # Pull from our local dictionary
+        items = MOCK_ITEMS.get(uuid, [])
+        page_info = {
+            "totalElements": len(items), 
+            "totalPages": 1, 
+            "number": 0
+        }
+    else:
+        # Pull from real DSpace API
+        params = {'uuid': uuid, 'page': page, 'size': size, 'embed': 'metadata'}
+        url = f"{DSPACE_API}/core/items/search/findByCollection?{urlencode(params)}"
+        response = requests.get(url).json()
+        items = response.get('_embedded', {}).get('items', [])
+        page_info = response.get('page', {})
+
+    # 2. METADATA SETUP
     current_page = page_info.get('number', 0)
     
     feed = {
@@ -140,17 +192,32 @@ def get_publication_feed(uuid: str, page: int = 0, size: int = 20):
             "numberOfItems": page_info.get('totalElements', 0),
             "currentPage": current_page + 1
         },
-        "links": [{"rel": "self", "href": f"{BASE_URL}/opds/v2/collection/{uuid}?page={current_page}&size={size}", "type": "application/opds+json"}],
+        "links": [
+            {"rel": "self", "href": f"{BASE_URL}/opds/v2/collection/{uuid}?page={current_page}&size={size}", "type": "application/opds+json"}
+        ],
         "publications": []
     }
 
-    # Add next/prev links
+    # 3. PAGINATION LINKS
     if current_page < page_info.get('totalPages', 1) - 1:
-        feed["links"].append({"rel": "next", "href": f"{BASE_URL}/opds/v2/collection/{uuid}?page={current_page+1}&size={size}", "type": "application/opds+json"})
+        feed["links"].append({
+            "rel": "next", 
+            "href": f"{BASE_URL}/opds/v2/collection/{uuid}?page={current_page+1}&size={size}", 
+            "type": "application/opds+json"
+        })
+    if current_page > 0:
+        feed["links"].append({
+            "rel": "previous", 
+            "href": f"{BASE_URL}/opds/v2/collection/{uuid}?page={current_page-1}&size={size}", 
+            "type": "application/opds+json"
+        })
 
-    for item in response.get('_embedded', {}).get('items', []):
+    # 4. PUBLICATION MAPPING
+    for item in items:
         meta = item.get('metadata', {})
-        acq_links, images = get_bitstreams(item['uuid'])
+        
+        # If in MOCK mode, bitstreams will return empty lists unless you've mocked them too
+        acq_links, images = get_bitstreams(item['uuid']) if os.getenv("DSPACE_API") != "MOCK" else ([], [])
         
         pub = {
             "metadata": {
@@ -161,9 +228,16 @@ def get_publication_feed(uuid: str, page: int = 0, size: int = 20):
             "links": acq_links,
             "images": images
         }
+        
+        # Add Narrator if it exists (Audiobook check)
+        if "isNarratorOfPublication" in meta:
+            pub["metadata"]["narrator"] = [{"name": n['value']} for n in meta.get('isNarratorOfPublication', [])]
+            
         feed["publications"].append(pub)
         
     return feed
+
+# --SEARCH
 
 @app.get("/opds/v2/search", summary="Search Publications")
 def search_publications(query: str = None):
