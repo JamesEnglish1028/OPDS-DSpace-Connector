@@ -1,12 +1,16 @@
-from fastapi import FastAPI, HTTPException
-import requests
 import os
+from fastapi import FastAPI
+import requests
 
-app = FastAPI(title="DSpace-OPDS Connector")
+app = FastAPI()
 
-# Configuration (Use Environment Variables for security)
-DSPACE_API = os.getenv("DSPACE_API", "https://your-dspace-domain.edu/server/api")
-BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
+# Render automatically provides a URL, but we'll use an Env Var if set
+DSPACE_API = os.getenv("DSPACE_API", "https://demo.dspace.org/server/api")
+BASE_URL = os.getenv("BASE_URL", "http://localhost:10000").rstrip('/')
+
+@app.get("/")
+def health_check():
+    return {"status": "online", "connector": "DSpace-to-OPDS2.0"}
 
 @app.get("/opds/v2/catalog", summary="Root Navigation Feed")
 def root_navigation():
