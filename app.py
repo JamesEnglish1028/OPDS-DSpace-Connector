@@ -272,44 +272,37 @@ def search_publications(query: str = None):
 
 ## -- Test Routes --
 
-@app.get("/opds/v2/mock-preview", summary="Mock Preview for OPDS Clients")
-def mock_preview():
-    """Generates a mock feed to test how different entities look in e-readers."""
-    return {
+@app.get("/opds/v2/mock-preview", summary="Paginated Mock Test")
+def mock_preview(page: int = 0):
+    """Simulates multi-page publication feeds for e-reader testing."""
+    next_page = page + 1
+    has_next = page < 2  # Simulate 3 pages total (0, 1, 2)
+    
+    feed = {
         "@context": "http://opds-spec.org/opds.jsonld",
         "metadata": {
-            "title": "Preview: Specialized Entities"
+            "title": f"Mock Paginated Feed - Page {page + 1}",
+            "currentPage": page + 1,
+            "numberOfItems": 6
         },
+        "links": [
+            {"rel": "self", "href": f"{BASE_URL}/opds/v2/mock-preview?page={page}", "type": "application/opds+json"}
+        ],
         "publications": [
             {
-                "metadata": {
-                    "@type": "http://schema.org/Audiobook",
-                    "title": "DSpace Chronicles: The Audio Experience",
-                    "author": [{"name": "English, James"}],
-                    "narrator": [{"name": "Narrator Voice"}],
-                    "publisher": {"name": "DSpace Labs"},
-                    "description": "A mock audiobook entity to test narrator metadata."
-                },
-                "links": [
-                    {"rel": "http://opds-spec.org/acquisition", "href": "https://www.learningcontainer.com/wp-content/uploads/2020/02/Sample-OGG-File.ogg", "type": "audio/ogg"}
-                ],
-                "images": [{"href": "https://placehold.co/600x400/000/fff?text=Audiobook+Cover", "type": "image/png"}]
+                "metadata": {"title": f"Mock Book {page * 2 + 1}", "author": [{"name": "Author A"}]},
+                "links": [{"rel": "http://opds-spec.org/acquisition", "href": "#", "type": "application/pdf"}]
             },
             {
-                "metadata": {
-                    "@type": "http://schema.org/PublicationIssue",
-                    "title": "The DSpace Comic #1",
-                    "author": [{"name": "Developer, Alex"}],
-                    "illustrator": [{"name": "Artist, Sam"}],
-                    "belongsTo": {
-                        "series": {"name": "The Great Metadata Saga", "position": 1}
-                    }
-                },
-                "links": [
-                    {"rel": "http://opds-spec.org/acquisition", "href": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf", "type": "application/pdf"}
-                ],
-                "images": [{"href": "https://placehold.co/600x400/000/fff?text=Comic+Cover", "type": "image/png"}]
+                "metadata": {"title": f"Mock Book {page * 2 + 2}", "author": [{"name": "Author B"}]},
+                "links": [{"rel": "http://opds-spec.org/acquisition", "href": "#", "type": "application/pdf"}]
             }
         ]
     }
 
+    if has_next:
+        feed["links"].append({"rel": "next", "href": f"{BASE_URL}/opds/v2/mock-preview?page={next_page}", "type": "application/opds+json"})
+    if page > 0:
+        feed["links"].append({"rel": "previous", "href": f"{BASE_URL}/opds/v2/mock-preview?page={page - 1}", "type": "application/opds+json"})
+
+    return feed
