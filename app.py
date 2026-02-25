@@ -43,6 +43,27 @@ MOCK_ITEMS = {
     ]
 }
 
+MOCK_SEARCH_RESULTS = {
+    "_embedded": {
+        "objects": [
+            {
+                "_embedded": {
+                    "indexableObject": {
+                        "uuid": "audio-1",
+                        "metadata": {
+                            "dc.title": [{"value": "Mock Audiobook: The Palace Secret"}],
+                            "dc.contributor.author": [{"value": "English, James"}],
+                            "dc.type": [{"value": "Audiobook"}],
+                            "isNarratorOfPublication": [{"value": "Deep Voice"}]
+                        }
+                    }
+                }
+            }
+        ]
+    },
+    "page": {"totalElements": 1, "totalPages": 1, "number": 0}
+}
+
 # --- CONFIGURATION ---
 # Render/Environment variables
 DSPACE_API = os.getenv("DSPACE_API", "https://demo.dspace.org/server/api").rstrip('/')
@@ -241,33 +262,58 @@ def get_publication_feed(uuid: str, page: int = 0, size: int = 20):
 
 @app.get("/opds/v2/search", summary="Search Publications")
 def search_publications(query: str = None):
-    """Proxies search to DSpace Discovery API."""
+    """
+    Proxies search to DSpace Discovery API with support for 
+    Stable Identifiers (ISBN/Handle) for Palace Project ingestion.
+    """
     if not query:
         return {"metadata": {"title": "No search terms"}, "publications": []}
 
-    search_url = f"{DSPACE_API}/discover/search/objects?query={quote(query)}&dsoType=item&embed=metadata"
-    response = requests.get(search_url).json()
+    # 1. DATA ACQUISITION
+    if os.getenv("DSPACE_API") == "MOCK":
+        response = MOCK_SEARCH_RESULTS
+    else:
+        search_url = f"{DSPACE_API}/discover/search/objects?query={quote(query)}&dsoType=item&embed=metadata"
+        response = requests.get(search_url).json()
     
     feed = {
         "@context": "http://opds-spec.org/opds.jsonld",
-        "metadata": {"title": f"Results for: {query}"},
+        "metadata": {
+            "title": f"Results for: {query}",
+            "numberOfItems": response.get('page', {}).get('totalElements', 0)
+        },
+        "links": [
+            {"rel": "self", "href": f"{BASE_URL}/opds/v2/search?query={quote(query)}", "type": "application/opds+json"}
+        ],
         "publications": []
     }
 
+    # 2. MAPPING WITH STABLE IDENTIFIERS
     for result in response.get('_embedded', {}).get('objects', []):
         item = result.get('_embedded', {}).get('indexableObject', {})
         if not item: continue
+        
         meta = item.get('metadata', {})
-        acq_links, images = get_bitstreams(item['uuid'])
+        acq_links, images = get_bitstreams(item['uuid']) if os.getenv("DSPACE_API") != "MOCK" else ([], [])
+        
+        # Identifier Logic: Aggregators need a stable URI or ISBN
+        isbn = meta.get('dc.identifier.isbn', [{}])[0].get('value')
+        handle = meta.get('dc.identifier.uri', [{}])[0].get('value')
         
         feed["publications"].append({
             "metadata": {
+                "@type": "http://schema.org/Book",
+                "identifier": isbn or handle or f"urn:uuid:{item['uuid']}", # Priority fallback
                 "title": meta.get('dc.title', [{}])[0].get('value', 'Untitled'),
-                "author": [{"name": a['value']} for a in meta.get('dc.contributor.author', [])]
+                "author": [{"name": a['value']} for a in meta.get('dc.contributor.author', [])],
+                "publisher": {"name": meta.get('isPublisherOfPublication', [{}])[0].get('value', 'Unknown')},
+                "language": meta.get('dc.language.iso', [{}])[0].get('value', 'en'),
+                "modified": item.get('lastModified')
             },
             "links": acq_links,
             "images": images
         })
+        
     return feed
 
 ## -- Test Routes --
