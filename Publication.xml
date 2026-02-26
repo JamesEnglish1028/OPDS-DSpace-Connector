@@ -2,6 +2,12 @@
 <relationship-types>
     <entity-types>
         <entity-type>Publication</entity-type>
+        <entity-type>Book</entity-type>
+        <entity-type>BookChapter</entity-type>
+        <entity-type>Monograph</entity-type>
+        <entity-type>TechnicalReport</entity-type>
+        <entity-type>Thesis</entity-type>
+        <entity-type>ConferencePaper</entity-type>
         <entity-type>Person</entity-type>
         <entity-type>OrgUnit</entity-type>
         <entity-type>Series</entity-type>
@@ -32,6 +38,22 @@
         <left-type>Publication</left-type><right-type>OrgUnit</right-type>
         <leftward-type>isPublisherOfPublication</leftward-type>
         <rightward-type>isPublicationOfPublisher</rightward-type>
+    </relationship-type>
+
+    <relationship-type>
+        <left-type>BookChapter</left-type><right-type>Book</right-type>
+        <leftward-type>isBookOfBookChapter</leftward-type>
+        <rightward-type>isBookChapterOfBook</rightward-type>
+        <copy-leftward>false</copy-leftward>
+        <copy-rightward>false</copy-rightward>
+    </relationship-type>
+
+    <relationship-type>
+        <left-type>BookChapter</left-type><right-type>Monograph</right-type>
+        <leftward-type>isMonographOfBookChapter</leftward-type>
+        <rightward-type>isBookChapterOfMonograph</rightward-type>
+        <copy-leftward>false</copy-leftward>
+        <copy-rightward>false</copy-rightward>
     </relationship-type>
 
     <relationship-type>
