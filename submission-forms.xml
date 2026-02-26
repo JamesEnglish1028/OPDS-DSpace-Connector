@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<submission-forms>
+    <form-value-pairs>
+        <value-pairs name="opds_publication_types">
+            <pair><displayed-value>Book</displayed-value><stored-value>Book</stored-value></pair>
+            <pair><displayed-value>Audiobook</displayed-value><stored-value>Audiobook</stored-value></pair>
+            <pair><displayed-value>Book Chapter</displayed-value><stored-value>BookChapter</stored-value></pair>
+            <pair><displayed-value>Comic</displayed-value><stored-value>Comic</stored-value></pair>
+            <pair><displayed-value>Monograph</displayed-value><stored-value>Monograph</stored-value></pair>
+            <pair><displayed-value>Technical Report</displayed-value><stored-value>TechnicalReport</stored-value></pair>
+            <pair><displayed-value>Thesis</displayed-value><stored-value>Thesis</stored-value></pair>
+            <pair><displayed-value>Conference Paper</displayed-value><stored-value>ConferencePaper</stored-value></pair>
+            <pair><displayed-value>Periodical</displayed-value><stored-value>Periodical</stored-value></pair>
+            <pair><displayed-value>Other</displayed-value><stored-value>Other</stored-value></pair>
+        </value-pairs>
+
+        <value-pairs name="opds_access_modes">
+            <pair><displayed-value>Open Access</displayed-value><stored-value>open-access</stored-value></pair>
+            <pair><displayed-value>Restricted</displayed-value><stored-value>restricted</stored-value></pair>
+            <pair><displayed-value>Embargoed</displayed-value><stored-value>embargoed</stored-value></pair>
+        </value-pairs>
+
+        <value-pairs name="opds_media_types">
+            <pair><displayed-value>EPUB</displayed-value><stored-value>application/epub+zip</stored-value></pair>
+            <pair><displayed-value>PDF</displayed-value><stored-value>application/pdf</stored-value></pair>
+            <pair><displayed-value>MP3</displayed-value><stored-value>audio/mpeg</stored-value></pair>
+            <pair><displayed-value>M4B</displayed-value><stored-value>audio/mp4</stored-value></pair>
+            <pair><displayed-value>CBZ</displayed-value><stored-value>application/vnd.comicbook+zip</stored-value></pair>
+            <pair><displayed-value>JPEG</displayed-value><stored-value>image/jpeg</stored-value></pair>
+            <pair><displayed-value>PNG</displayed-value><stored-value>image/png</stored-value></pair>
+        </value-pairs>
+
+        <value-pairs name="opds_bitstream_roles">
+            <pair><displayed-value>Primary Content</displayed-value><stored-value>primary-content</stored-value></pair>
+            <pair><displayed-value>Cover Image</displayed-value><stored-value>cover-image</stored-value></pair>
+            <pair><displayed-value>Supplementary Material</displayed-value><stored-value>supplementary</stored-value></pair>
+        </value-pairs>
+    </form-value-pairs>
+
+    <form-definitions>
+        <form name="opds-publication">
+            <row>
+                <field>
+                    <dc-schema>dc</dc-schema>
+                    <dc-element>title</dc-element>
+                    <label>Title</label>
+                    <input-type>onebox</input-type>
+                    <required>true</required>
+                    <repeatable>false</repeatable>
+                </field>
+                <field>
+                    <dc-schema>dc</dc-schema>
+                    <dc-element>type</dc-element>
+                    <label>Publication Type</label>
+                    <input-type>dropdown</input-type>
+                    <value-pairs-name>opds_publication_types</value-pairs-name>
+                    <required>true</required>
+                    <repeatable>false</repeatable>
+                </field>
+            </row>
+
+            <row>
+                <field>
+                    <dc-schema>dc</dc-schema>
+                    <dc-element>identifier</dc-element>
+                    <dc-qualifier>isbn</dc-qualifier>
+                    <label>ISBN</label>
+                    <input-type>onebox</input-type>
+                    <repeatable>false</repeatable>
+                </field>
+                <field>
+                    <dc-schema>dc</dc-schema>
+                    <dc-element>identifier</dc-element>
+                    <dc-qualifier>uri</dc-qualifier>
+                    <label>Canonical Identifier / Handle URI</label>
+                    <input-type>onebox</input-type>
+                    <repeatable>false</repeatable>
+                </field>
+            </row>
+
+            <row>
+                <field>
+                    <dc-schema>dc</dc-schema>
+                    <dc-element>language</dc-element>
+                    <dc-qualifier>iso</dc-qualifier>
+                    <label>Language (ISO)</label>
+                    <input-type>onebox</input-type>
+                    <hint>Example: en, es, fr</hint>
+                    <repeatable>false</repeatable>
+                </field>
+                <field>
+                    <dc-schema>dc</dc-schema>
+                    <dc-element>date</dc-element>
+                    <dc-qualifier>issued</dc-qualifier>
+                    <label>Publication Date</label>
+                    <input-type>date</input-type>
+                    <repeatable>false</repeatable>
+                </field>
+            </row>
+
+            <row>
+                <field>
+                    <dc-schema>dc</dc-schema>
+                    <dc-element>description</dc-element>
+                    <dc-qualifier>abstract</dc-qualifier>
+                    <label>Abstract / Description</label>
+                    <input-type>textarea</input-type>
+                    <required>false</required>
+                    <repeatable>false</repeatable>
+                </field>
+            </row>
+
+            <row>
+                <field>
+                    <dc-schema>dc</dc-schema>
+                    <dc-element>contributor</dc-element>
+                    <dc-qualifier>author</dc-qualifier>
+                    <label>Author(s)</label>
+                    <input-type>lookup</input-type>
+                    <repeatable>true</repeatable>
+                    <authority controlled="true" searchable="true"/>
+                    <vocabulary>people</vocabulary>
+                </field>
+                <field>
+                    <dc-schema>dc</dc-schema>
+                    <dc-element>contributor</dc-element>
+                    <dc-qualifier>editor</dc-qualifier>
+                    <label>Editor(s)</label>
+                    <input-type>lookup</input-type>
+                    <repeatable>true</repeatable>
+                    <authority controlled="true" searchable="true"/>
+                    <vocabulary>people</vocabulary>
+                </field>
+            </row>
+
+            <row>
+                <field>
+                    <dc-schema>dc</dc-schema>
+                    <dc-element>contributor</dc-element>
+                    <dc-qualifier>illustrator</dc-qualifier>
+                    <label>Illustrator(s)</label>
+                    <input-type>lookup</input-type>
+                    <repeatable>true</repeatable>
+                    <authority controlled="true" searchable="true"/>
+                    <vocabulary>people</vocabulary>
+                </field>
+                <field>
+                    <dc-schema>dc</dc-schema>
+                    <dc-element>contributor</dc-element>
+                    <dc-qualifier>narrator</dc-qualifier>
+                    <label>Narrator(s) (Audiobook)</label>
+                    <input-type>lookup</input-type>
+                    <repeatable>true</repeatable>
+                    <authority controlled="true" searchable="true"/>
+                    <vocabulary>people</vocabulary>
+                </field>
+            </row>
+
+            <row>
+                <field>
+                    <dc-schema>dc</dc-schema>
+                    <dc-element>publisher</dc-element>
+                    <label>Publisher</label>
+                    <input-type>lookup</input-type>
+                    <repeatable>false</repeatable>
+                    <authority controlled="true" searchable="true"/>
+                    <vocabulary>organization</vocabulary>
+                </field>
+                <field>
+                    <dc-schema>dc</dc-schema>
+                    <dc-element>relation</dc-element>
+                    <dc-qualifier>ispartof</dc-qualifier>
+                    <label>Parent Book/Monograph (for Book Chapter)</label>
+                    <input-type>lookup</input-type>
+                    <hint>Link chapters to a parent Book or Monograph.</hint>
+                    <repeatable>false</repeatable>
+                    <authority controlled="true" searchable="true"/>
+                    <vocabulary>publication</vocabulary>
+                </field>
+            </row>
+
+            <row>
+                <field>
+                    <dc-schema>dc</dc-schema>
+                    <dc-element>relation</dc-element>
+                    <dc-qualifier>ispartofseries</dc-qualifier>
+                    <label>Series</label>
+                    <input-type>lookup</input-type>
+                    <repeatable>false</repeatable>
+                    <authority controlled="true" searchable="true"/>
+                    <vocabulary>series</vocabulary>
+                </field>
+                <field>
+                    <dc-schema>dc</dc-schema>
+                    <dc-element>relation</dc-element>
+                    <dc-qualifier>ispartofseriesnumber</dc-qualifier>
+                    <label>Series Number</label>
+                    <input-type>onebox</input-type>
+                    <repeatable>false</repeatable>
+                </field>
+            </row>
+
+            <row>
+                <field>
+                    <dc-schema>dc</dc-schema>
+                    <dc-element>rights</dc-element>
+                    <dc-qualifier>access</dc-qualifier>
+                    <label>Access Mode</label>
+                    <input-type>dropdown</input-type>
+                    <value-pairs-name>opds_access_modes</value-pairs-name>
+                    <repeatable>false</repeatable>
+                </field>
+                <field>
+                    <dc-schema>dc</dc-schema>
+                    <dc-element>format</dc-element>
+                    <dc-qualifier>mimetype</dc-qualifier>
+                    <label>Primary Distribution Format</label>
+                    <input-type>dropdown</input-type>
+                    <value-pairs-name>opds_media_types</value-pairs-name>
+                    <repeatable>false</repeatable>
+                </field>
+            </row>
+
+            <row>
+                <field>
+                    <dc-schema>dc</dc-schema>
+                    <dc-element>identifier</dc-element>
+                    <dc-qualifier>uri</dc-qualifier>
+                    <label>Cover Art URL</label>
+                    <hint>Public image URL used for OPDS cover display (optional when uploading a cover image bitstream).</hint>
+                    <input-type>onebox</input-type>
+                    <repeatable>false</repeatable>
+                </field>
+            </row>
+
+            <row>
+                <field>
+                    <dc-schema>dc</dc-schema>
+                    <dc-element>subject</dc-element>
+                    <label>Subjects / Keywords</label>
+                    <input-type>onebox</input-type>
+                    <repeatable>true</repeatable>
+                </field>
+            </row>
+        </form>
+
+        <form name="bitstream-metadata">
+            <row>
+                <field>
+                    <dc-schema>dc</dc-schema>
+                    <dc-element>title</dc-element>
+                    <label>File Label</label>
+                    <input-type>onebox</input-type>
+                </field>
+                <field>
+                    <dc-schema>dc</dc-schema>
+                    <dc-element>format</dc-element>
+                    <dc-qualifier>mimetype</dc-qualifier>
+                    <label>File MIME Type</label>
+                    <input-type>dropdown</input-type>
+                    <value-pairs-name>opds_media_types</value-pairs-name>
+                </field>
+            </row>
+            <row>
+                <field>
+                    <dc-schema>dc</dc-schema>
+                    <dc-element>type</dc-element>
+                    <label>Bitstream Role</label>
+                    <input-type>dropdown</input-type>
+                    <value-pairs-name>opds_bitstream_roles</value-pairs-name>
+                    <hint>Set to Cover Image for artwork files.</hint>
+                </field>
+            </row>
+            <row>
+                <field>
+                    <dc-schema>dc</dc-schema>
+                    <dc-element>description</dc-element>
+                    <dc-qualifier>provenance</dc-qualifier>
+                    <label>Bitstream Description</label>
+                    <input-type>textarea</input-type>
+                </field>
+            </row>
+        </form>
+    </form-definitions>
+</submission-forms>
