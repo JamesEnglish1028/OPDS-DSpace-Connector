@@ -3,6 +3,7 @@ import hmac
 import os
 import threading
 from urllib.parse import quote
+from datetime import datetime, timezone
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.responses import FileResponse
@@ -34,25 +35,76 @@ MOCK_ITEMS = {
             "uuid": "audio-1",
             "metadata": {
                 "dc.title": [{"value": "The Metadata Mystery"}],
-                "dc.type": [{"value": "Audiobook"}],
+                "dc.type": [{"value": "Book"}],
+                "dc.identifier.isbn": [{"value": "9781234567890"}],
                 "dc.contributor.author": [{"value": "English, James"}],
                 "isNarratorOfPublication": [{"value": "Voice Actor, Sarah"}],
                 "isPublisherOfPublication": [{"value": "OPDS Labs"}],
             },
-        }
+        },
+        {
+            "uuid": "mono-1",
+            "metadata": {
+                "dc.title": [{"value": "Research Monograph"}],
+                "dc.type": [{"value": "Monograph"}],
+                "dc.identifier.isbn": [{"value": "9782222222222"}],
+                "dc.contributor.author": [{"value": "Scholar, Jane"}],
+                "isPublisherOfPublication": [{"value": "Academic Press"}],
+            },
+        },
+        {
+            "uuid": "thesis-1",
+            "metadata": {
+                "dc.title": [{"value": "Master's Thesis"}],
+                "dc.type": [{"value": "Thesis"}],
+                "dc.identifier.isbn": [{"value": "9783333333333"}],
+                "dc.contributor.author": [{"value": "Student, Alex"}],
+                "isPublisherOfPublication": [{"value": "University"}],
+            },
+        },
+        {
+            "uuid": "report-1",
+            "metadata": {
+                "dc.title": [{"value": "Technical Report"}],
+                "dc.type": [{"value": "TechnicalReport"}],
+                "dc.identifier.isbn": [{"value": "9784444444444"}],
+                "dc.contributor.author": [{"value": "Engineer, Sam"}],
+                "isPublisherOfPublication": [{"value": "Tech Institute"}],
+            },
+        },
+        {
+            "uuid": "conf-1",
+            "metadata": {
+                "dc.title": [{"value": "Conference Paper"}],
+                "dc.type": [{"value": "ConferencePaper"}],
+                "dc.identifier.isbn": [{"value": "9785555555555"}],
+                "dc.contributor.author": [{"value": "Researcher, Pat"}],
+                "isPublisherOfPublication": [{"value": "Conference Org"}],
+            },
+        },
     ],
     "comm-2": [
         {
             "uuid": "comic-1",
             "metadata": {
                 "dc.title": [{"value": "The Code Crusader #1"}],
-                "dc.type": [{"value": "Periodical"}],
+                "dc.type": [{"value": "BookChapter"}],
+                "dc.identifier.isbn": [{"value": "9780987654321"}],
                 "dc.contributor.author": [{"value": "Developer, Alex"}],
                 "isIllustratorOfPublication": [{"value": "Artist, Sam"}],
                 "isSeriesOfPublication": [{"value": "The Great Metadata Saga"}],
                 "relation.isSeriesOfPublication.number": [{"value": "1"}],
             },
-        }
+        },
+        {
+            "uuid": "series-1",
+            "metadata": {
+                "dc.title": [{"value": "Science Series"}],
+                "dc.type": [{"value": "Series"}],
+                "dc.identifier.isbn": [{"value": "9786666666666"}],
+                "dc.contributor.author": [{"value": "Editor, Lee"}],
+            },
+        },
     ],
 }
 
@@ -65,8 +117,9 @@ MOCK_SEARCH_RESULTS = {
                         "uuid": "audio-1",
                         "metadata": {
                             "dc.title": [{"value": "Mock Audiobook: The Palace Secret"}],
-                            "dc.contributor.author": [{"value": "English, James"}],
                             "dc.type": [{"value": "Audiobook"}],
+                            "dc.identifier.isbn": [{"value": "9781111111111"}],
+                            "dc.contributor.author": [{"value": "English, James"}],
                             "isNarratorOfPublication": [{"value": "Deep Voice"}],
                         },
                     }
@@ -464,11 +517,30 @@ def get_publication_feed(uuid: str, page: int = Query(0, ge=0), size: int = Quer
         metadata = item.get("metadata", {})
         acquisition_links, images = get_bitstreams(item["uuid"])
 
+        # Add identifier and @type mapping
+        isbn = metadata.get("dc.identifier.isbn", [{}])[0].get("value")
+        handle = metadata.get("dc.identifier.uri", [{}])[0].get("value")
+        dc_type = metadata.get("dc.type", [{}])[0].get("value", "Book")
+        type_map = {
+            "Book": "http://schema.org/Book",
+            "BookChapter": "http://schema.org/Chapter",
+            "Monograph": "http://schema.org/Book",
+            "TechnicalReport": "http://schema.org/Report",
+            "Thesis": "http://schema.org/Thesis",
+            "ConferencePaper": "http://schema.org/ScholarlyArticle",
+            "Series": "http://schema.org/Series",
+            "Publication": "http://schema.org/CreativeWork",
+        }
+        schema_type = type_map.get(dc_type, "http://schema.org/Book")
+
         publication = {
             "metadata": {
+                "@type": schema_type,
+                "identifier": isbn or handle or f"urn:uuid:{item['uuid']}",
                 "title": metadata.get("dc.title", [{}])[0].get("value", "Untitled"),
                 "author": [{"name": author["value"]} for author in metadata.get("dc.contributor.author", [])],
                 "publisher": {"name": metadata.get("isPublisherOfPublication", [{}])[0].get("value", "Unknown")},
+                "modified": datetime.now(timezone.utc).isoformat(),
             },
             "links": acquisition_links,
             "images": images,
@@ -528,10 +600,24 @@ def search_publications(query: str | None = None):
         isbn = metadata.get("dc.identifier.isbn", [{}])[0].get("value")
         handle = metadata.get("dc.identifier.uri", [{}])[0].get("value")
 
+        # Map dc.type to schema.org @type
+        dc_type = metadata.get("dc.type", [{}])[0].get("value", "Book")
+        type_map = {
+            "Book": "http://schema.org/Book",
+            "BookChapter": "http://schema.org/Chapter",
+            "Monograph": "http://schema.org/Book",
+            "TechnicalReport": "http://schema.org/Report",
+            "Thesis": "http://schema.org/Thesis",
+            "ConferencePaper": "http://schema.org/ScholarlyArticle",
+            "Series": "http://schema.org/Series",
+            "Publication": "http://schema.org/CreativeWork",
+        }
+        schema_type = type_map.get(dc_type, "http://schema.org/Book")
+
         feed["publications"].append(
             {
                 "metadata": {
-                    "@type": "http://schema.org/Book",
+                    "@type": schema_type,
                     "identifier": isbn or handle or f"urn:uuid:{item['uuid']}",
                     "title": metadata.get("dc.title", [{}])[0].get("value", "Untitled"),
                     "author": [{"name": author["value"]} for author in metadata.get("dc.contributor.author", [])],
